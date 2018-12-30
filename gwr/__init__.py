@@ -1,0 +1,2 @@
+from .gwr import GWR
+
