@@ -23,43 +23,48 @@ class GWR:
         self.winner_firing_counters = np.array([1-(1-np.exp(-1.05*k/3.33))/1.05 for k in range(100)])
         self.neighbor_firing_counters = np.array([1-(1-np.exp(-1.05*k/14.3))/1.05 for k in range(100)])
 
-    def get_next_winner_firing_counter(self, cur_value):
+    def _get_next_winner_firing_counter(self, cur_value):
         if cur_value == 0:
             return self.winner_firing_counters[0]
         if cur_value > self.winner_firing_counters[-1]:
             return self.winner_firing_counters[self.winner_firing_counters < cur_value][0]
         return self.winner_firing_counters[-1]
 
-    def get_next_neighbor_firing_counter(self, cur_value):
+    def _get_next_neighbor_firing_counter(self, cur_value):
         if cur_value == 0:
             return self.neighbor_firing_counters[0]
         if cur_value > self.neighbor_firing_counters[-1]:
             return self.neighbor_firing_counters[self.neighbor_firing_counters < cur_value][0]
         return self.neighbor_firing_counters[-1]
 
-    def fit(self, xs, y=None, normalize=True, iters=None, verbose=False, delta_thr=None):
-        np.random.seed(self.random_state)
+    def _init(self, arg_xs, normalize):
+        if normalize:
+            self.mins = np.min(arg_xs, axis=0)
+            self.deltas = np.max(arg_xs, axis=0) - self.mins
 
-        if self.mins is not None and self.deltas is not None:
-            xs = (xs - self.mins) / self.deltas
+        self.nodes = []
+        for k in range(2):
+            random_idxs = np.unique(np.random.choice(len(arg_xs), int(len(arg_xs) / 4)))
+            sub_xs = arg_xs[random_idxs, :]
+            node_w = np.mean(sub_xs, axis=0)
+            if normalize:
+                node_w = (node_w - self.mins) / self.deltas
+            self.nodes.append(Node(id=k, w=node_w))
+
+    def fit(self, arg_xs, y=None, normalize=True, iters=None, verbose=False, delta_thr=None):
+        np.random.seed(self.random_state)
 
         if iters is None:
             iters = 1
 
         if delta_thr is None:
-            delta_thr = 1e-4 * np.sqrt(xs.shape[1])
+            delta_thr = 1e-4 * np.sqrt(arg_xs.shape[1])
 
         if self.nodes is None:
-            if normalize:
-                self.mins = np.min(xs, axis=0)
-                self.deltas = np.max(xs, axis=0) - self.mins
-                xs = (xs - self.mins) / self.deltas
+            self._init(arg_xs, normalize)
 
-            self.nodes = []
-            for k in range(2):
-                random_idxs = np.unique(np.random.choice(len(xs), int(len(xs)/2)))
-                sub_xs = xs[random_idxs, :]
-                self.nodes.append(Node(id=k, w=np.mean(sub_xs, axis=0)))
+        if self.mins is not None and self.deltas is not None:
+            xs = (arg_xs - self.mins) / self.deltas
 
         deltas = []
 
@@ -73,7 +78,7 @@ class GWR:
 
             cur_deltas = []
             for x in xs:
-                cur_dw = self.fit_sample(x)
+                cur_dw = self._fit_sample(x)
                 if cur_dw is not None:
                     cur_deltas.append(np.sqrt(np.dot(cur_dw, cur_dw)) / np.sqrt(len(cur_dw)))
             if len(cur_deltas) > 0:
@@ -88,7 +93,7 @@ class GWR:
         else:
             self.delta_ws.extend(deltas)
 
-    def fit_sample(self, x):
+    def _fit_sample(self, x):
         """
 
         :param x:
@@ -98,7 +103,7 @@ class GWR:
             return 1+max([n.id for n in self.nodes])
 
         # find the best and second best matching nodes.
-        node1, node2 = self.find_best_matching_nodes(x)
+        node1, node2 = self._find_best_matching_nodes(x)
 
         cur_conn = (node1.id, node2.id)
         self.conns[cur_conn] = 0
@@ -119,7 +124,7 @@ class GWR:
             node2.w += dw2
 
         # age connections incident to node1 and update firing counters of its neighborhs.
-        node1.firing_counter = self.get_next_winner_firing_counter(node1.firing_counter) #  h0 - 1/alpha_b * (1 - np.exp(-alpha_b * t / tau_b))
+        node1.firing_counter = self._get_next_winner_firing_counter(node1.firing_counter) #  h0 - 1/alpha_b * (1 - np.exp(-alpha_b * t / tau_b))
         for conn in self.conns:
             if node1.id not in conn:
                 continue
@@ -131,14 +136,14 @@ class GWR:
                 if n.id == neighbor_id:
                     neighbor_node = n
                     break
-            neighbor_node.firing_counter = self.get_next_neighbor_firing_counter(neighbor_node.firing_counter)   # h0 - 1 / alpha_n * (1 - np.exp(-alpha_n * t / tau_n))
+            neighbor_node.firing_counter = self._get_next_neighbor_firing_counter(neighbor_node.firing_counter)   # h0 - 1 / alpha_n * (1 - np.exp(-alpha_n * t / tau_n))
 
-        self.remove_dangling_nodes()
-        self.remove_too_old_edges()
+        self._remove_dangling_nodes()
+        self._remove_too_old_edges()
 
         return dw1
 
-    def remove_dangling_nodes(self):
+    def _remove_dangling_nodes(self):
         node_ids = {node.id: node for node in self.nodes}
         for c in self.conns:
             c = sorted(c)
@@ -149,17 +154,18 @@ class GWR:
         for node_id, node in node_ids.items():
             self.nodes.remove(node)
 
-    def remove_too_old_edges(self):
+    def _remove_too_old_edges(self):
         conn_ids = list(self.conns)
         for conn_id in conn_ids:
             if self.conns[conn_id] > self.max_edge_age:
                 del self.conns[conn_id]
 
-    def find_best_matching_nodes(self, x):
+    def _find_best_matching_nodes(self, argx):
         min_dist1, min_dist2 = np.inf, np.inf
         node1, node2 = None, None
+
         for node in self.nodes:
-            dist = np.linalg.norm(x - node.w)
+            dist = np.linalg.norm(argx - node.w)
 
             if dist < min_dist2:
                 min_dist2 = dist
