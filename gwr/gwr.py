@@ -63,6 +63,7 @@ class GWR:
         if self.nodes is None:
             self._init(arg_xs, normalize)
 
+        xs = arg_xs
         if self.mins is not None and self.deltas is not None:
             xs = (arg_xs - self.mins) / self.deltas
 
@@ -105,7 +106,7 @@ class GWR:
         # find the best and second best matching nodes.
         node1, node2 = self._find_best_matching_nodes(x)
 
-        cur_conn = (node1.id, node2.id)
+        cur_conn = (node1.id, node2.id) if node1.id < node2.id else (node2.id, node1.id)
         self.conns[cur_conn] = 0
 
         # add a new node or update node1 and node2.
@@ -113,8 +114,8 @@ class GWR:
         if activity1 < self.activity_thr and node1.firing_counter < self.firing_counter and node2.firing_counter < self.firing_counter:
             new_node = Node(id=_get_next_node_id(), w=0.5*(node1.w + x))
             self.nodes.append(new_node)
-            self.conns[(new_node.id, node1.id)] = 0
-            self.conns[(new_node.id, node2.id)] = 0
+            self.conns[(node1.id, new_node.id)] = 0
+            self.conns[(node2.id, new_node.id)] = 0
             del self.conns[cur_conn]
             dw1 = None
         else:
@@ -146,7 +147,6 @@ class GWR:
     def _remove_dangling_nodes(self):
         node_ids = {node.id: node for node in self.nodes}
         for c in self.conns:
-            c = sorted(c)
             if c[0] in node_ids:
                 del node_ids[c[0]]
             if c[1] in node_ids:

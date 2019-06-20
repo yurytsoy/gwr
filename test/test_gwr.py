@@ -22,6 +22,7 @@ class TestGwr(unittest.TestCase):
         dataset = np.vstack([g1, g2])
         gwr = GWR()
         gwr.fit(dataset, normalize=True)
+        # self.assertEqual(len(conns), len(set(conns)))
 
         # print(len(gwr.nodes), len(gwr.conns))
 
@@ -76,12 +77,3 @@ class TestGwr(unittest.TestCase):
         self.assertEqual(len(gwr.delta_ws), len(delta_ws))
         self.assertTrue(np.all(np.array(gwr.get_weights()) - np.array(node_pts) == 0))
         self.assertTrue(np.all(np.array(gwr.delta_ws) - np.array(delta_ws) == 0))
-
-        # import pandas as pd
-        # pd.DataFrame(data=gwr.deltas).to_csv('deltas.csv', index=False)
-        #
-        # data = np.vstack([g1, g2])
-        # pd.DataFrame(data).to_csv("data.csv", index=False)
-        #
-        # node_pts = gwr.get_weights()
-        # pd.DataFrame(node_pts).to_csv("node_pts.csv", index=False)
