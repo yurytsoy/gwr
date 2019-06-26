@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gwr"
-version = "0.1.0"
+version = "0.1.1"
 description = "Implementation of the Grow When Required model"
 authors = ["yurytsoy <yurytsoy@gmail.com>"]
 
