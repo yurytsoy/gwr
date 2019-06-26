@@ -77,3 +77,12 @@ class TestGwr(unittest.TestCase):
         self.assertEqual(len(gwr.delta_ws), len(delta_ws))
         self.assertTrue(np.all(np.array(gwr.get_weights()) - np.array(node_pts) == 0))
         self.assertTrue(np.all(np.array(gwr.delta_ws) - np.array(delta_ws) == 0))
+
+    def test_4points(self):
+        dataset = np.array([[1, 0], [0, 1], [0, 0], [1, 1]])
+
+        gwr = GWR(firing_counter=0.1)
+        gwr.fit(dataset, normalize=False, iters=1000)
+        self.assertEqual(len(gwr.nodes), 4)
+        # print([min([np.linalg.norm(x-node.w) for node in gwr.nodes]) for x in dataset])
+        self.assertTrue(all([min([np.linalg.norm(x-node.w) for node in gwr.nodes]) < 0.092 for x in dataset]))

@@ -216,7 +216,7 @@ class Node:
     def __init__(self, id=None, w=None):
         self.id = id
         self.w = w
-        self.firing_counter = 0
+        self.firing_counter = 1
 
     def __eq__(self, other):
         if type(other) != type(self):
