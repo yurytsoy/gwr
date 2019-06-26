@@ -56,7 +56,7 @@ class TestGwr(unittest.TestCase):
         dataset = np.vstack([g1, g2])
         gwr = GWR()
         gwr.fit(dataset, normalize=True, iters=1)
-        gwr.fit(dataset, normalize=True, iters=1)
+        gwr.fit(dataset, normalize=True, iters=1, warm_start=True)
 
         node_pts = gwr.get_weights()
         delta_ws = gwr.delta_ws
@@ -84,5 +84,13 @@ class TestGwr(unittest.TestCase):
         gwr = GWR(firing_counter=0.1)
         gwr.fit(dataset, normalize=False, iters=1000)
         self.assertEqual(len(gwr.nodes), 4)
-        # print([min([np.linalg.norm(x-node.w) for node in gwr.nodes]) for x in dataset])
         self.assertTrue(all([min([np.linalg.norm(x-node.w) for node in gwr.nodes]) < 0.092 for x in dataset]))
+
+        gwr = GWR(firing_counter=1.1)
+        errs = []
+        for k in range(10):
+            gwr.fit(dataset, normalize=False, iters=10, warm_start=True, verbose=True)
+            rmse = np.linalg.norm([min([np.linalg.norm(x-node.w) for node in gwr.nodes]) for x in dataset])
+            errs.append(rmse)
+            print(len(gwr.nodes), [min([np.linalg.norm(x-node.w) for node in gwr.nodes]) for x in dataset])
+        self.assertTrue(all( (np.array(errs[:-1]) - np.array(errs[1:])) > 0 ))

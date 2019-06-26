@@ -50,8 +50,9 @@ class GWR:
             if normalize:
                 node_w = (node_w - self.mins) / self.deltas
             self.nodes.append(Node(id=k, w=node_w))
+        self.conns = dict()
 
-    def fit(self, arg_xs, y=None, normalize=True, iters=None, verbose=False, delta_thr=None):
+    def fit(self, arg_xs, y=None, normalize=True, iters=None, verbose=False, delta_thr=None, warm_start=False):
         np.random.seed(self.random_state)
 
         if iters is None:
@@ -60,7 +61,7 @@ class GWR:
         if delta_thr is None:
             delta_thr = 1e-4 * np.sqrt(arg_xs.shape[1])
 
-        if self.nodes is None:
+        if not warm_start or self.nodes is None:
             self._init(arg_xs, normalize)
 
         xs = arg_xs
@@ -117,7 +118,7 @@ class GWR:
             self.conns[(node1.id, new_node.id)] = 0
             self.conns[(node2.id, new_node.id)] = 0
             del self.conns[cur_conn]
-            dw1 = None
+            dw1 = new_node.w - x
         else:
             dw1 = self.eps_b * node1.firing_counter * (x - node1.w)
             node1.w += dw1
