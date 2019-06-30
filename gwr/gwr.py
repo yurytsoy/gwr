@@ -59,7 +59,7 @@ class GWR:
             iters = 1
 
         if delta_thr is None:
-            delta_thr = 1e-4 * np.sqrt(arg_xs.shape[1])
+            delta_thr = 1e-4
 
         if not warm_start or self.nodes is None:
             self._init(arg_xs, normalize)
@@ -81,8 +81,7 @@ class GWR:
             cur_deltas = []
             for x in xs:
                 cur_dw = self._fit_sample(x)
-                if cur_dw is not None:
-                    cur_deltas.append(np.sqrt(np.dot(cur_dw, cur_dw)) / np.sqrt(len(cur_dw)))
+                cur_deltas.append(np.sqrt(np.dot(cur_dw, cur_dw) / len(cur_dw)))
             if len(cur_deltas) > 0:
                 deltas.append(np.mean(cur_deltas))
 
