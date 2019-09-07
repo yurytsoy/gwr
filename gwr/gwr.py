@@ -121,8 +121,10 @@ class GWR:
         else:
             dw1 = self.eps_b * node1.firing_counter * (x - node1.w)
             node1.w += dw1
-            dw2 = self.eps_n * node2.firing_counter * (x - node2.w)
-            node2.w += dw2
+            nnodes = self._find_neighbors(node1)
+            for nnode in nnodes:
+                dw2 = self.eps_n * nnode.firing_counter * (x - nnode.w)
+                nnode.w += dw2
 
         # age connections incident to node1 and update firing counters of its neighborhs.
         node1.firing_counter = self._get_next_winner_firing_counter(node1.firing_counter) #  h0 - 1/alpha_b * (1 - np.exp(-alpha_b * t / tau_b))
@@ -178,6 +180,16 @@ class GWR:
 
         assert(node1.id != node2.id)
         return node1, node2
+
+    def _find_neighbors(self, node):
+        ids = []
+        for conn in self.conns:
+            if conn[0] == node.id:
+                ids.append(conn[1])
+            if conn[1] == node.id:
+                ids.append(conn[0])
+        node_ids = {node.id: node for node in self.nodes}
+        return [node_ids[node_id] for node_id in ids]
 
     def fit_predict(self, xs, y=None):
         self.fit(xs, y)
