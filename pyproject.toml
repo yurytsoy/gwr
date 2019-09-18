@@ -5,7 +5,7 @@ description = "Implementation of the Grow When Required model"
 authors = ["yurytsoy <yurytsoy@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.5"
 numpy = "^1.16"
 jsonpickle = "^1.2"
 
